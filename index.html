@@ -367,6 +367,32 @@
             </form>
         </div>
     </div>
+
+    <!-- (v4.0) New: Edit Category Modal -->
+    <div id="edit-category-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm m-4 overflow-hidden">
+            <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
+                <ion-icon name="pencil-outline" class="mr-2 text-2xl"></ion-icon>
+                แก้ไขหมวดหมู่
+            </h3>
+            <form id="edit-category-form" class="p-6 space-y-4">
+                <input type="hidden" id="edit-category-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ชื่อหมวดหมู่</label>
+                    <input type="text" id="edit-category-name" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                </div>
+                <div>
+                    <input type="checkbox" id="edit-category-track-stock" class="rounded text-emerald-600 focus:ring-emerald-500">
+                    <label for="edit-category-track-stock" class="ml-2 text-sm text-gray-700">ติดตามสต็อก (นับจำนวน)</label>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="edit-category-cancel" class="px-4 py-2 bg-gray-200 rounded-lg">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <div id="z-report-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md m-4 max-h-[90vh] overflow-hidden flex flex-col">
             <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
@@ -494,6 +520,13 @@
         const cancelEatLogBtn = document.getElementById('cancel-eat-log-btn');
         const submitEatLogBtnText = document.getElementById('submit-eat-log-btn-text');
 
+        // (v4.0) New Edit Category Modal UI
+        const editCategoryModal = document.getElementById('edit-category-modal');
+        const editCategoryForm = document.getElementById('edit-category-form');
+        const editCategoryId = document.getElementById('edit-category-id');
+        const editCategoryName = document.getElementById('edit-category-name');
+        const editCategoryTrackStock = document.getElementById('edit-category-track-stock');
+
         // Image Compression
         function compressImage(file) {
             return new Promise((resolve, reject) => {
@@ -555,6 +588,15 @@
                     ? `<button onclick="window.openStock('${c.id}','${c.name}')" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">สต็อก</button>`
                     : ''; // Hide stock button if not tracked
 
+                // (v4.0) New: Add Edit/Delete buttons
+                const editButtons = `
+                    <div class="flex-shrink-0 flex gap-2 ml-2">
+                        ${stockButton}
+                        <button onclick="window.editCategory('${c.id}')" class="text-xs bg-yellow-500 text-white px-2 py-1 rounded">แก้</button>
+                        <button onclick="window.deleteCategory('${c.id}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded">ลบ</button>
+                    </div>
+                `;
+
                 // Render admin list
                 list.innerHTML += `
                     <div class="flex justify-between items-center p-2 bg-gray-50 rounded border">
@@ -562,7 +604,7 @@
                             <span class="font-bold text-emerald-800">${c.name}</span>
                             <p class="text-sm text-gray-600">คงเหลือ: ${stockDisplay}</p>
                         </div>
-                        ${stockButton}
+                        ${editButtons}
                     </div>`;
 
                 // Render Category Tabs
@@ -959,6 +1001,56 @@
             else { data.isOutOfStock = false; data.createdAt = serverTimestamp(); await addDoc(collection(db, `artifacts/${appId}/public/data/products`), data); }
             document.getElementById('cancel-edit-btn').click();
         };
+
+        // (v4.0) New: Edit Category Logic
+        window.editCategory = (id) => {
+            const cat = localCategories.find(c => c.id === id);
+            if (!cat) return;
+            editCategoryId.value = id;
+            editCategoryName.value = cat.name;
+            editCategoryTrackStock.checked = cat.isStockTracked;
+            editCategoryModal.classList.remove('hidden');
+        };
+        document.getElementById('edit-category-cancel').onclick = () => {
+            editCategoryModal.classList.add('hidden');
+        };
+        editCategoryForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const id = editCategoryId.value;
+            const name = editCategoryName.value;
+            const isStockTracked = editCategoryTrackStock.checked;
+            
+            if (!id) return;
+            
+            try {
+                await updateDoc(doc(db, `artifacts/${appId}/public/data/categories`, id), {
+                    name: name,
+                    isStockTracked: isStockTracked
+                });
+                editCategoryModal.classList.add('hidden');
+                showModal("แก้ไขหมวดหมู่สำเร็จ!");
+            } catch (err) {
+                console.error("Error updating category: ", err);
+                showModal("เกิดข้อผิดพลาด: " + err.message);
+            }
+        };
+        window.deleteCategory = async (id) => {
+            const productsInCat = localProducts.filter(p => p.categoryId === id);
+            if (productsInCat.length > 0) {
+                showModal(`ไม่สามารถลบได้! คุณต้องลบสินค้า ${productsInCat.length} ชิ้นในหมวดหมู่นี้ก่อน`);
+                return;
+            }
+            
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้? (ไม่สามารถย้อนกลับได้)')) {
+                try {
+                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/categories`, id));
+                    showModal("ลบหมวดหมู่แล้ว");
+                } catch (err) {
+                    console.error("Error deleting category: ", err);
+                    showModal("เกิดข้อผิดพลาด: " + err.message);
+                }
+            }
+        };
         
         // (v3.9) Modified: Eating Log Form
         addEatingLogForm.onsubmit = async (e) => {
@@ -1058,7 +1150,7 @@
         };
 
 
-        // (v3.9) Modified: Render Eating Log History (Simplified)
+        // (v4.0) Modified: Render Eating Log History (Bigger Font)
         function renderEatingLogHistory() {
             eatingLogHistoryList.innerHTML = '';
             if (localEatingHistory.length === 0) {
@@ -1066,11 +1158,10 @@
                 return;
             }
             localEatingHistory.forEach(log => {
-                // (v3.9) Removed timestamp
-                // const time = log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString('th-TH') : '...';
+                // (v4.0) Changed text-xs to text-sm and p-1 to p-2
                 eatingLogHistoryList.innerHTML += `
-                    <div class="flex justify-between items-center text-xs p-1 border-b">
-                        <span>${log.personName} กิน ${log.categoryName} (<span class="text-red-600 font-bold">-${log.quantity}</span>)</span>
+                    <div class="flex justify-between items-center text-sm p-2 border-b">
+                        <span><strong class="text-gray-800">${log.personName}</strong> กิน ${log.categoryName} (<span class="text-red-600 font-bold">-${log.quantity}</span>)</span>
                         <div class="flex gap-2">
                             <button onclick="window.editEatLog('${log.id}')" class="text-blue-500">✎</button>
                             <button onclick="window.delEatLog('${log.id}')" class="text-red-500">x</button>
