@@ -620,6 +620,11 @@
             const tabsContainer = document.getElementById('category-tabs');
             const eatCategorySelect = document.getElementById('eat-category-select');
             
+            // (v4.6) FIX: If the filter was stuck on 'RECOMMENDED' (which no longer exists), reset to 'ALL'.
+            if (activeCategoryFilter === 'RECOMMENDED') {
+                activeCategoryFilter = 'ALL';
+            }
+            
             list.innerHTML = ''; 
             select.innerHTML = '<option value="">-- เลือกหมวดหมู่ --</option>';
             tabsContainer.innerHTML = '';
@@ -629,10 +634,12 @@
             const sortedCategories = localCategories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
             // (v4.3) Render 'Recommended' Tab first
+            /* (v4.6) REMOVED 'Recommended' Tab
             const recommendedTabClass = activeCategoryFilter === 'RECOMMENDED' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-100';
             tabsContainer.innerHTML += `
                 <button onclick="window.setCategoryFilter('RECOMMENDED')" class="px-4 py-2 rounded-lg font-semibold transition ${recommendedTabClass}">⭐ แนะนำ</button>
             `;
+            */
 
             // 1. Render 'All' Tab
             const allTabClass = activeCategoryFilter === 'ALL' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-100';
@@ -826,12 +833,14 @@
                                       p.promoType === 'SMALL_BOTTLE' ? 'โปรขวดเล็ก' : 'N/A';
                     
                     // (v4.3) Recommended (Star) button
+                    /* (v4.6) REMOVED Recommend Button
                     const recommendIcon = p.isRecommended ? 'star' : 'star-outline';
                     const recommendColor = p.isRecommended ? 'text-yellow-500' : 'text-gray-400';
                     const recommendButton = `
                         <button onclick="window.toggleRecommended('${p.id}', ${p.isRecommended || false})" class="text-xl ${recommendColor} hover:text-yellow-500">
                             <ion-icon name="${recommendIcon}"></ion-icon>
                         </button>`;
+                    */
 
                     productHtml += `
                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border ml-4">
@@ -840,7 +849,7 @@
                                 <div><div class="font-bold text-sm">${p.name}</div><div class="text-xs text-gray-500">${p.basePrice} บ. (${promoText})</div></div>
                             </div>
                             <div class="flex gap-2 items-center">
-                                ${recommendButton}
+                                <!-- (v4.6) REMOVED recommendButton -->
                                 <button onclick="window.toggleStock('${p.id}',${p.isOutOfStock})" class="text-xs px-2 py-1 rounded text-white ${p.isOutOfStock?'bg-gray-500':'bg-green-500'}">${p.isOutOfStock?'ปิด':'เปิด'}</button>
                                 <button onclick="window.editProd('${p.id}')" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">แก้</button>
                                 <button onclick="window.delProd('${p.id}')" class="text-xs px-2 py-1 bg-red-600 text-white rounded">ลบ</button>
@@ -866,15 +875,15 @@
                 uncategorizedProducts.forEach(p => {
                     const img = p.imageUrl || `https://placehold.co/400x300/eee/999?text=${encodeURIComponent(p.name)}`;
                     const promoText = p.promoType === 'EXCLUDED' ? 'ราคาคงที่' : 
-                                      p.promoType === 'BIG_BOTTLE' ? 'โปรขวดใหญ่' : 
-                                      p.promoType === 'SMALL_BOTTLE' ? 'โปรขวดเล็ก' : 'N/A';
-                    
+                    // (v4.3) Recommended (Star) button
+                    /* (v4.6) REMOVED Recommend Button
                     const recommendIcon = p.isRecommended ? 'star' : 'star-outline';
                     const recommendColor = p.isRecommended ? 'text-yellow-500' : 'text-gray-400';
                     const recommendButton = `
                         <button onclick="window.toggleRecommended('${p.id}', ${p.isRecommended || false})" class="text-xl ${recommendColor} hover:text-yellow-500">
                             <ion-icon name="${recommendIcon}"></ion-icon>
                         </button>`;
+                    */
 
                     productHtml += `
                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border ml-4">
@@ -883,7 +892,7 @@
                                 <div><div class="font-bold text-sm">${p.name}</div><div class="text-xs text-gray-500">${p.basePrice} บ. (${promoText})</div></div>
                             </div>
                             <div class="flex gap-2 items-center">
-                                ${recommendButton}
+                                <!-- (v4.6) REMOVED recommendButton -->
                                 <button onclick="window.toggleStock('${p.id}',${p.isOutOfStock})" class="text-xs px-2 py-1 rounded text-white ${p.isOutOfStock?'bg-gray-500':'bg-green-500'}">${p.isOutOfStock?'ปิด':'เปิด'}</button>
                                 <button onclick="window.editProd('${p.id}')" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">แก้</button>
                                 <button onclick="window.delProd('${p.id}')" class="text-xs px-2 py-1 bg-red-600 text-white rounded">ลบ</button>
@@ -910,10 +919,9 @@
                 
                 const img = p.imageUrl || `https://placehold.co/400x300/eee/999?text=${encodeURIComponent(p.name)}`;
                 
-                // (v4.3) Customer Filter Logic
+                // (v4.6) Customer Filter Logic (Removed RECOMMENDED)
                 const passesSearch = p.name.toLowerCase().includes(custSearch);
                 const passesCategoryFilter = activeCategoryFilter === 'ALL' || 
-                                             (activeCategoryFilter === 'RECOMMENDED' && p.isRecommended) || 
                                              p.categoryId === activeCategoryFilter;
 
                 if(passesSearch && passesCategoryFilter) {
@@ -924,9 +932,11 @@
                     else if(p.promoType === 'EXCLUDED') { promoDetail = 'สินค้าราคาต่อชิ้น'; promoColor = 'bg-yellow-600'; }
 
                     // (v4.3) Recommended Badge
+                    /* (v4.6) REMOVED Recommend Badge
                     const recommendBadge = p.isRecommended 
                         ? `<div class="absolute top-2 right-2 text-yellow-400 bg-black/50 p-1 rounded-full"><ion-icon name="star" class="text-sm block align-middle"></ion-icon></div>` 
                         : '';
+                    */
 
                     custList.innerHTML += `
                         <div class="bg-white rounded-xl shadow border overflow-hidden flex flex-col justify-between ${isSoldOut ? 'product-sold-out' : 'hover:shadow-md'}">
@@ -934,7 +944,7 @@
                                 <img src="${img}" class="w-full aspect-square object-cover" onerror="this.src='https://placehold.co/400x300/eee/999?text=Error'">
                                 ${isSoldOut ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold">หมด</div>' : ''}
                                 <div class="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-1 rounded ${promoColor}">${p.promoType}</div>
-                                ${recommendBadge}
+                                <!-- (v4.6) REMOVED recommendBadge -->
                             </div>
                             <div class="p-3 flex flex-col flex-grow">
                                 <h4 class="font-bold truncate">${p.name}</h4>
@@ -1094,9 +1104,11 @@
         window.toggleStock = async (id, state) => await updateDoc(doc(db, `artifacts/${appId}/public/data/products`, id), { isOutOfStock: !state });
         
         // (v4.3) New: Toggle Recommended
+        /* (v4.6) REMOVED toggleRecommended
         window.toggleRecommended = async (id, state) => {
              await updateDoc(doc(db, `artifacts/${appId}/public/data/products`, id), { isRecommended: !state });
         }
+        */
 
         window.delProd = (id) => {
             window.showConfirmModal('ยืนยันการลบสินค้านี้?', async () => {
@@ -1222,7 +1234,7 @@
             else { 
                 data.isOutOfStock = false; 
                 data.createdAt = serverTimestamp(); 
-                data.isRecommended = false; // (v4.3) Default recommended to false
+                // data.isRecommended = false; // (v4.6) REMOVED
                 await addDoc(collection(db, `artifacts/${appId}/public/data/products`), data); 
             }
             document.getElementById('cancel-edit-btn').click();
