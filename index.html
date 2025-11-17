@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Ionicons (สำหรับไอคอน) -->
-    <!-- (v3.1 FIX) Reverted to v11.6.1 (Stable CDN version) -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
 
@@ -19,11 +18,20 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .product-sold-out { opacity: 0.6; filter: grayscale(80%); }
         #floating-cart-btn { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+        
+        /* (v4.3) For collapsible sections */
+        details summary::-webkit-details-marker { display: none; }
+        details summary { list-style: none; }
+        details[open] .details-arrow { transform: rotate(180deg); }
+
+        /* (v4.3) For category drag & drop */
+        .category-item.dragging { opacity: 0.5; background: #f0fdf4; border: 2px dashed #22c55e; }
+        .category-item .drag-handle { cursor: move; }
     </style>
 </head>
-<body class="bg-slate-50 text-gray-800"> <!-- (v3.4) GUI: Lighter BG -->
+<!-- (v4.3) FIX: Added overflow-x-hidden to prevent horizontal scroll -->
+<body class="bg-slate-50 text-gray-800 overflow-x-hidden">
 
-    <!-- (v3.4) GUI: Changed to Emerald -->
     <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-20">
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center space-x-2">
@@ -65,89 +73,109 @@
 
                     <!-- (v3.6) REMOVED Manual Sale (Quick Sale) -->
 
-                    <!-- (v3.9) Manage Categories -->
+                    <!-- (v4.3) MODIFIED: Collapsible Category Management -->
                     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
-                            <ion-icon name="file-tray-stacked-outline" class="mr-2 text-2xl"></ion-icon>
-                            จัดการหมวดหมู่
-                        </h3>
-                        <form id="add-category-form" class="p-6 space-y-4 mb-0">
-                            <div class="flex flex-col sm:flex-row gap-4">
-                                <div class="flex-grow">
-                                    <label class="block text-sm font-medium text-gray-700">ชื่อหมวดหมู่ใหม่</label>
-                                    <input type="text" id="category-name" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="เช่น เครื่องดื่ม, ขนม" required>
+                        <details open>
+                            <summary class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center justify-between cursor-pointer list-none">
+                                <div class="flex items-center">
+                                    <ion-icon name="file-tray-stacked-outline" class="mr-2 text-2xl"></ion-icon>
+                                    จัดการหมวดหมู่
                                 </div>
-                                <div class="flex-shrink-0 flex items-end">
-                                    <button type="submit" class="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold shadow">เพิ่ม</button>
+                                <ion-icon name="chevron-down-outline" class="text-2xl transition-transform duration-200 details-arrow"></ion-icon>
+                            </summary>
+                            
+                            <form id="add-category-form" class="p-6 space-y-4 mb-0">
+                                <div class="flex flex-col sm:flex-row gap-4">
+                                    <div class="flex-grow">
+                                        <label class="block text-sm font-medium text-gray-700">ชื่อหมวดหมู่ใหม่</label>
+                                        <input type="text" id="category-name" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="เช่น เครื่องดื่ม, ขนม" required>
+                                    </div>
+                                    <div class="flex-shrink-0 flex items-end">
+                                        <button type="submit" class="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold shadow">เพิ่ม</button>
+                                    </div>
                                 </div>
+                                <div class="mt-2">
+                                    <input type="checkbox" id="category-track-stock" class="rounded text-emerald-600 focus:ring-emerald-500" checked>
+                                    <label for="category-track-stock" class="ml-2 text-sm text-gray-700">ติดตามสต็อก (นับจำนวน)</label>
+                                </div>
+                            </form>
+                            <div class="p-6 pt-4 text-sm text-gray-600 border-b border-gray-100">
+                                <ion-icon name="information-circle-outline" class="align-middle"></ion-icon>
+                                <strong>Tip:</strong> กดค้างที่ไอคอน ☰ เพื่อลากและวางสำหรับจัดลำดับใหม่
                             </div>
-                            <!-- (v3.9) New Checkbox -->
-                            <div class="mt-2">
-                                <input type="checkbox" id="category-track-stock" class="rounded text-emerald-600 focus:ring-emerald-500" checked>
-                                <label for="category-track-stock" class="ml-2 text-sm text-gray-700">ติดตามสต็อก (นับจำนวน)</label>
-                            </div>
-                        </form>
-                        <div id="category-list" class="p-6 pt-4 space-y-2"></div>
+                            <div id="category-list" class="p-6 pt-4 space-y-2"></div>
+                        </details>
                     </div>
 
-                    <!-- Add/Edit Product -->
+                    <!-- (v4.3) MODIFIED: Collapsible Add/Edit Product -->
                     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                         <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
-                            <ion-icon name="add-circle-outline" class="mr-2 text-2xl"></ion-icon>
-                            เพิ่ม / แก้ไขสินค้า
-                        </h3>
-                        <form id="add-product-form" class="p-6 space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">เลือกหมวดหมู่</label>
-                                <select id="product-category" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
-                                    <option value="">-- กรุณาเลือกหมวดหมู่ --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
-                                <input type="text" id="product-name" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
-                            </div>
-                            <!-- Image Upload -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">รูปภาพสินค้า</label>
-                                <input type="file" id="product-image-file" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-green-50 file:text-green-700 hover:file:bg-green-100"/>
-                                <div id="image-preview-container" class="mt-2 hidden">
-                                    <img id="image-preview" src="" class="w-32 h-32 object-cover rounded border">
+                        <details open>
+                             <summary class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center justify-between cursor-pointer list-none">
+                                <div class="flex items-center">
+                                    <ion-icon name="add-circle-outline" class="mr-2 text-2xl"></ion-icon>
+                                    เพิ่ม / แก้ไขสินค้า
                                 </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">ราคา (1 ชิ้น)</label>
-                                <input type="number" id="product-price" min="0" step="0.01" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
-                            </div>
-                            <!-- Dropdown เลือกประเภทโปรโมชั่น -->
-                            <div>
-                                <label for="product-promo-type" class="block text-sm font-medium text-gray-700">ประเภทโปรโมชั่น</label>
-                                <select id="product-promo-type" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
-                                    <option value="BIG_BOTTLE">โปรขวดใหญ่: 2@150, 4@240 (น้ำปกติ)</option>
-                                    <option value="SMALL_BOTTLE">โปรขวดเล็ก: 3@100</option>
-                                    <option value="EXCLUDED">ราคาคงที่ (ไม่เข้าร่วมโปรเหมา เช่น น้ำดิบ)</option>
-                                </select>
-                            </div>
-                            <input type="hidden" id="product-id">
-                            <div class="flex justify-end space-x-3 pt-2">
-                                <button type="button" id="cancel-edit-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hidden">ยกเลิก</button>
-                                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold shadow">
-                                    <span id="submit-product-btn-text">เพิ่มสินค้าใหม่</span>
-                                </button>
-                            </div>
-                        </form>
+                                <ion-icon name="chevron-down-outline" class="text-2xl transition-transform duration-200 details-arrow"></ion-icon>
+                            </summary>
+
+                            <form id="add-product-form" class="p-6 space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">เลือกหมวดหมู่</label>
+                                    <select id="product-category" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                                        <option value="">-- กรุณาเลือกหมวดหมู่ --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
+                                    <input type="text" id="product-name" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">รูปภาพสินค้า</label>
+                                    <input type="file" id="product-image-file" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-green-50 file:text-green-700 hover:file:bg-green-100"/>
+                                    <div id="image-preview-container" class="mt-2 hidden">
+                                        <img id="image-preview" src="" class="w-32 h-32 object-cover rounded border">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">ราคา (1 ชิ้น)</label>
+                                    <input type="number" id="product-price" min="0" step="0.01" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                                </div>
+                                <div>
+                                    <label for="product-promo-type" class="block text-sm font-medium text-gray-700">ประเภทโปรโมชั่น</label>
+                                    <select id="product-promo-type" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                                        <option value="BIG_BOTTLE">โปรขวดใหญ่: 2@150, 4@240 (น้ำปกติ)</option>
+                                        <option value="SMALL_BOTTLE">โปรขวดเล็ก: 3@100</option>
+                                        <option value="EXCLUDED">ราคาคงที่ (ไม่เข้าร่วมโปรเหมา เช่น น้ำดิบ)</option>
+                                    </select>
+                                </div>
+                                <input type="hidden" id="product-id">
+                                <div class="flex justify-end space-x-3 pt-2">
+                                    <button type="button" id="cancel-edit-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hidden">ยกเลิก</button>
+                                    <button type="submit" class="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold shadow">
+                                        <span id="submit-product-btn-text">เพิ่มสินค้าใหม่</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </details>
                     </div>
 
-                    <!-- Product List -->
+                    <!-- (v4.3) MODIFIED: Collapsible Product List -->
                     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
-                            <ion-icon name="list-outline" class="mr-2 text-2xl"></ion-icon>
-                            รายการสินค้า
-                        </h3>
-                        <div class="p-6">
-                            <input type="text" id="admin-search-bar" placeholder="ค้นหา..." class="w-full px-3 py-2 border rounded-md mb-4">
-                            <div id="admin-product-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
-                        </div>
+                        <details open>
+                            <summary class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center justify-between cursor-pointer list-none">
+                                <div class="flex items-center">
+                                    <ion-icon name="list-outline" class="mr-2 text-2xl"></ion-icon>
+                                    รายการสินค้า
+                                </div>
+                                <ion-icon name="chevron-down-outline" class="text-2xl transition-transform duration-200 details-arrow"></ion-icon>
+                            </summary>
+
+                            <div class="p-6">
+                                <input type="text" id="admin-search-bar" placeholder="ค้นหา..." class="w-full px-3 py-2 border rounded-md mb-4">
+                                <!-- (v4.3) MODIFIED: Admin list is now grouped by category -->
+                                <div id="admin-product-list" class="space-y-4 max-h-[800px] overflow-y-auto pr-2"></div>
+                            </div>
+                        </details>
                     </div>
                 </div>
 
@@ -194,18 +222,8 @@
                         </h3>
                         <div id="z-report-history-list" class="p-6 space-y-2 max-h-[200px] overflow-y-auto text-sm"></div>
                     </div>
-
-                    <!-- Stock Log History -->
-                    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
-                            <ion-icon name="receipt-outline" class="mr-2 text-2xl"></ion-icon>
-                            ประวัติการเติมสต็อก
-                        </h3>
-                        <div id="stock-history-list" class="p-6 space-y-2 max-h-[200px] overflow-y-auto text-sm">
-                            <p class="text-gray-500">ยังไม่มีประวัติการเติม</p>
-                        </div>
-                    </div>
-
+                    
+                    <!-- (v4.3) MOVED: Expense moved up -->
                     <!-- Expense -->
                     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
                         <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
@@ -224,6 +242,17 @@
                             </div>
                         </form>
                         <div id="expense-history-list" class="p-6 pt-2 space-y-2 max-h-[200px] overflow-y-auto text-sm border-t"></div>
+                    </div>
+
+                    <!-- (v4.3) MOVED: Stock Log History moved down -->
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                        <h3 class="text-xl font-semibold text-white p-4 bg-gradient-to-r from-emerald-600 to-green-600 flex items-center">
+                            <ion-icon name="receipt-outline" class="mr-2 text-2xl"></ion-icon>
+                            ประวัติการเติมสต็อก
+                        </h3>
+                        <div id="stock-history-list" class="p-6 space-y-2 max-h-[200px] overflow-y-auto text-sm">
+                            <p class="text-gray-500">ยังไม่มีประวัติการเติม</p>
+                        </div>
                     </div>
 
                     <!-- (v3.9) MODIFIED: Eating Log -->
@@ -269,10 +298,9 @@
 
         <!-- ========================= CUSTOMER SECTION ========================= -->
         <section id="store-section">
-             <!-- (v3.4) GUI: Added Gradient to active tab -->
             <h2 class="text-3xl font-bold text-emerald-800 mb-6">หน้าร้านค้า</h2>
             <div id="category-tabs" class="flex overflow-x-auto whitespace-nowrap space-x-3 mb-6 p-1 bg-gray-200 rounded-lg shadow-inner no-scrollbar sticky top-[88px] z-10">
-                <!-- Tabs will be rendered here -->
+                <!-- (v4.3) Tabs will be rendered here, including "Recommended" -->
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
@@ -441,10 +469,21 @@
         </div>
     </div>
 
+    <!-- (v4.2) New: Generic Confirm Modal -->
+    <div id="generic-confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm m-4 text-center">
+            <h3 class="text-xl font-semibold text-yellow-700 mb-4">โปรดยืนยัน</h3>
+            <p id="generic-confirm-message" class="text-lg text-gray-800 mb-6"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="generic-confirm-cancel" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+                <button id="generic-confirm-confirm" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Logic -->
     <script type="module">
-        // (v3.1 FIX) Reverted to v11.6.1 (Stable CDN version)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
             getAuth, 
@@ -469,9 +508,7 @@
             runTransaction, 
             setLogLevel 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // (v3.1 FIX) Removed analytics (was part of v12 snippet)
 
-        // (v3.1) นี่คือ Config (กุญแจ) ใหม่ของคุณ
         const firebaseConfig = {
             apiKey: "AIzaSyBcIa3RBMd1-kt9tOO6tdUDXbRrz0lLWl8",
             authDomain: "jomphonshop.firebaseapp.com",
@@ -482,15 +519,12 @@
             measurementId: "G-XH44BT8W7B"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        // const analytics = getAnalytics(app); // (v3.1 FIX) Removed analytics
-
         let db, auth, userId, currentImageBase64 = "";
         let localProducts = [], localOrders = [], localCategories = [], localExpenses = [], localReportHistory = [], cart = [];
-        let localStockHistory = []; // (v3.2) New
-        let localEatingHistory = []; // (v3.7) New
-        let activeCategoryFilter = 'ALL'; 
+        let localStockHistory = []; 
+        let localEatingHistory = []; 
+        let activeCategoryFilter = 'ALL'; // (v4.3) MODIFIED: 'RECOMMENDED' is a new valid value
         let listenersInitialized = false; 
 
         // --- Promotion Rule Sets (v2.9) ---
@@ -508,24 +542,47 @@
         const adminSection = document.getElementById('admin-section');
         const showStoreBtn = document.getElementById('show-store-btn');
         const showAdminBtn = document.getElementById('show-admin-btn');
-        const appId = "jomphonshop"; // (v3.1) Hardcode based on config
-        const stockHistoryList = document.getElementById('stock-history-list'); // (v3.2) New
-        const confirmClearModal = document.getElementById('confirm-clear-modal'); // (v3.3) New
+        const appId = "jomphonshop"; 
+        const stockHistoryList = document.getElementById('stock-history-list'); 
+        const confirmClearModal = document.getElementById('confirm-clear-modal'); 
+
+        // (v4.2) New Generic Confirm Modal UI
+        const genericConfirmModal = document.getElementById('generic-confirm-modal');
+        const genericConfirmMessage = document.getElementById('generic-confirm-message');
+        const genericConfirmCancel = document.getElementById('generic-confirm-cancel');
+        const genericConfirmConfirm = document.getElementById('generic-confirm-confirm');
+        let onConfirmAction = () => {}; 
+
+        window.showConfirmModal = (message, callback) => {
+            genericConfirmMessage.textContent = message;
+            onConfirmAction = callback; 
+            genericConfirmModal.classList.remove('hidden');
+        };
+        genericConfirmCancel.onclick = () => {
+            genericConfirmModal.classList.add('hidden');
+            onConfirmAction = () => {}; 
+        };
+        genericConfirmConfirm.onclick = () => {
+            genericConfirmModal.classList.add('hidden');
+            onConfirmAction(); 
+            onConfirmAction = () => {}; 
+        };
         
-        // (v3.9) Modified Eating Log UI
         const addEatingLogForm = document.getElementById('add-eating-log-form');
-        const eatCategorySelect = document.getElementById('eat-category-select'); // (v3.9) Changed
+        const eatCategorySelect = document.getElementById('eat-category-select'); 
         const eatingLogHistoryList = document.getElementById('eating-log-history-list');
         const eatLogIdInput = document.getElementById('eat-log-id');
         const cancelEatLogBtn = document.getElementById('cancel-eat-log-btn');
         const submitEatLogBtnText = document.getElementById('submit-eat-log-btn-text');
 
-        // (v4.0) New Edit Category Modal UI
         const editCategoryModal = document.getElementById('edit-category-modal');
         const editCategoryForm = document.getElementById('edit-category-form');
         const editCategoryId = document.getElementById('edit-category-id');
         const editCategoryName = document.getElementById('edit-category-name');
         const editCategoryTrackStock = document.getElementById('edit-category-track-stock');
+
+        // (v4.3) Drag and Drop state
+        let draggedItem = null;
 
         // Image Compression
         function compressImage(file) {
@@ -556,75 +613,153 @@
         });
 
         // Listeners & Renderers
-        // (v3.9) Modified
+        // (v4.3) MODIFIED: Added sorting, drag handles, and "Recommended" tab
         function renderCategories() {
             const list = document.getElementById('category-list');
             const select = document.getElementById('product-category');
             const tabsContainer = document.getElementById('category-tabs');
-            const eatCategorySelect = document.getElementById('eat-category-select'); // (v3.9) New
+            const eatCategorySelect = document.getElementById('eat-category-select');
             
             list.innerHTML = ''; 
             select.innerHTML = '<option value="">-- เลือกหมวดหมู่ --</option>';
             tabsContainer.innerHTML = '';
-            eatCategorySelect.innerHTML = '<option value="">-- เลือกหมวดหมู่ --</option>'; // (v3.9) New
+            eatCategorySelect.innerHTML = '<option value="">-- เลือกหมวดหมู่ --</option>';
 
-            // 1. Render 'All' Tab first
+            // (v4.3) Sort categories based on the 'order' field
+            const sortedCategories = localCategories.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            // (v4.3) Render 'Recommended' Tab first
+            const recommendedTabClass = activeCategoryFilter === 'RECOMMENDED' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-100';
+            tabsContainer.innerHTML += `
+                <button onclick="window.setCategoryFilter('RECOMMENDED')" class="px-4 py-2 rounded-lg font-semibold transition ${recommendedTabClass}">⭐ แนะนำ</button>
+            `;
+
+            // 1. Render 'All' Tab
             const allTabClass = activeCategoryFilter === 'ALL' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-100';
             tabsContainer.innerHTML += `
                 <button onclick="window.setCategoryFilter('ALL')" class="px-4 py-2 rounded-lg font-semibold transition ${allTabClass}">ทั้งหมด</button>
             `;
 
-            localCategories.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
-                // Populate dropdowns
+            sortedCategories.forEach(c => {
+                // Populate dropdowns (respecting new order)
                 select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-                eatCategorySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`; // (v3.9) New
+                eatCategorySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`; 
 
-                // (v3.9) New: Check if stock is tracked
                 const stockDisplay = c.isStockTracked 
                     ? `(<span class="font-bold ${c.remainingStock <= 5 ? 'text-red-600' : 'text-gray-800'}">${c.remainingStock}</span> / ${c.totalStock} ชิ้น)`
                     : `(<span class="text-blue-600">ไม่นับสต็อก</span>)`;
                 
                 const stockButton = c.isStockTracked
                     ? `<button onclick="window.openStock('${c.id}','${c.name}')" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">สต็อก</button>`
-                    : ''; // Hide stock button if not tracked
+                    : ''; 
 
-                // (v4.0) New: Add Edit/Delete buttons
                 const editButtons = `
-                    <div class="flex-shrink-0 flex gap-2 ml-2">
+                    <div class="flex-shrink-0 flex gap-2 ml-2 items-center">
                         ${stockButton}
                         <button onclick="window.editCategory('${c.id}')" class="text-xs bg-yellow-500 text-white px-2 py-1 rounded">แก้</button>
                         <button onclick="window.deleteCategory('${c.id}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded">ลบ</button>
                     </div>
                 `;
 
-                // Render admin list
+                // (v4.3) Render admin list with drag handle
                 list.innerHTML += `
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded border">
-                        <div>
-                            <span class="font-bold text-emerald-800">${c.name}</span>
-                            <p class="text-sm text-gray-600">คงเหลือ: ${stockDisplay}</p>
+                    <div class="category-item flex justify-between items-center p-2 bg-gray-50 rounded border" draggable="true" data-id="${c.id}">
+                        <div class="flex items-center">
+                            <span class="drag-handle text-gray-400 text-xl mr-2"><ion-icon name="reorder-three-outline"></ion-icon></span>
+                            <div>
+                                <span class="font-bold text-emerald-800">${c.name}</span>
+                                <p class="text-sm text-gray-600">คงเหลือ: ${stockDisplay}</p>
+                            </div>
                         </div>
                         ${editButtons}
                     </div>`;
 
-                // Render Category Tabs
+                // Render Category Tabs (respecting new order)
                 const tabClass = activeCategoryFilter === c.id ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-100';
                 tabsContainer.innerHTML += `
                     <button onclick="window.setCategoryFilter('${c.id}')" class="px-4 py-2 rounded-lg font-semibold transition ${tabClass}">${c.name}</button>
                 `;
             });
+
+            // (v4.3) Add drag-and-drop event listeners to the category list
+            addDragDropListeners();
         }
+
+        // (v4.3) New: Drag and Drop Listeners
+        function addDragDropListeners() {
+            const list = document.getElementById('category-list');
+            const items = list.querySelectorAll('.category-item');
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = e.target.closest('.category-item');
+                    setTimeout(() => e.target.closest('.category-item').classList.add('dragging'), 0);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                item.addEventListener('dragend', (e) => {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                });
+            });
+
+            list.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(list, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                if (dragging) {
+                    if (afterElement == null) {
+                        list.appendChild(dragging);
+                    } else {
+                        list.insertBefore(dragging, afterElement);
+                    }
+                }
+            });
+
+            list.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const children = Array.from(list.querySelectorAll('.category-item'));
+                const batch = writeBatch(db);
+                
+                children.forEach((child, index) => {
+                    const id = child.dataset.id;
+                    const docRef = doc(db, `artifacts/${appId}/public/data/categories`, id);
+                    batch.update(docRef, { order: index });
+                });
+                
+                try {
+                    await batch.commit();
+                    showModal("จัดลำดับหมวดหมู่ใหม่แล้ว!");
+                    // Snapshot will refresh the UI
+                } catch (err) {
+                    console.error("Error reordering: ", err);
+                    showModal("เกิดข้อผิดพลาดในการจัดลำดับ");
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.category-item:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+        
+        // (v4.3) MODIFIED: Handle 'RECOMMENDED' filter
         window.setCategoryFilter = (categoryId) => {
             activeCategoryFilter = categoryId;
             renderCategories(); // Rerender to highlight the active tab
             renderProducts();   // Rerender products with the new filter
         };
 
-        // (v3.9.2) *** FIX: Re-inserted missing renderOrders function ***
         function renderOrders() {
             const list = document.getElementById('order-list');
             list.innerHTML = '';
-            // (v3.7) Filtered *only pending* or *uncleared paid* orders
             const visible = localOrders
                 .filter(o => o.status === 'pending' || (o.status === 'paid' && o.reportStatus === 'pending'))
                 .sort((a, b) => {
@@ -643,7 +778,6 @@
                 const items = o.items.map(i => `${i.name} x${i.quantity}`).join(', ');
                 const statusClass = o.status === 'paid' ? 'bg-green-100 border-green-300' : (o.status === 'pending' ? 'bg-yellow-50 border-yellow-300 shadow-md' : 'bg-gray-100');
                 
-                // (v3.7) Changed button logic
                 let btnHtml = '';
                 if (o.status === 'pending') {
                     btnHtml = `<div class="flex gap-2 mt-2 justify-end"><button onclick="window.pay('${o.id}')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">ชำระแล้ว</button><button onclick="window.cancel('${o.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">ยกเลิก</button></div>`;
@@ -660,76 +794,147 @@
                     </div>`;
             });
 
-            // Badge Notification
             const badge = document.getElementById('pending-order-count');
             if(pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
         }
 
-        // (v3.9) Modified
+        // (v4.4) MODIFIED: Added Uncategorized group
         function renderProducts() {
             const adminList = document.getElementById('admin-product-list');
             const custList = document.getElementById('customer-product-list');
             const adminSearch = document.getElementById('admin-search-bar').value.toLowerCase();
             const custSearch = document.getElementById('customer-search-bar').value.toLowerCase();
             
-            // (v3.9) REMOVED: No longer need to populate eat-product-select
-            // eatProductSelect.innerHTML = '<option value="">-- เลือกสินค้า --</option>';
-
             adminList.innerHTML = ''; custList.innerHTML = '';
             
-            localProducts.forEach(p => {
-                const cat = localCategories.find(c => c.id === p.categoryId);
-                
-                // (v3.9) Modified Sold Out Logic
-                let isSoldOut = p.isOutOfStock; // Default (manual toggle)
-                if (cat && cat.isStockTracked && cat.remainingStock <= 0) {
-                    isSoldOut = true; // Sold out if tracked and empty
-                }
-                if (cat && !cat.isStockTracked) {
-                    isSoldOut = false; // NEVER sold out if not tracked
-                }
-                
-                const img = p.imageUrl || `https://placehold.co/400x300/eee/999?text=${encodeURIComponent(p.name)}`;
-                
-                const promoText = p.promoType === 'EXCLUDED' ? 'ราคาคงที่' : 
-                                  p.promoType === 'BIG_BOTTLE' ? 'โปรขวดใหญ่' : 
-                                  p.promoType === 'SMALL_BOTTLE' ? 'โปรขวดเล็ก' : 'N/A';
-                
-                // (v3.9) REMOVED: Populate Eating Log
+            // (v4.3) Sort categories by order
+            const sortedCategories = localCategories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-                // Admin View
-                if(p.name.toLowerCase().includes(adminSearch)) {
-                    adminList.innerHTML += `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            // (v4.3) Admin View: Grouped by Category
+            sortedCategories.forEach(cat => {
+                const productsInCategory = localProducts
+                    .filter(p => p.categoryId === cat.id && p.name.toLowerCase().includes(adminSearch))
+                    .sort((a, b) => a.name.localeCompare(b.name)); // Sort products alphabetically within category
+
+                if (productsInCategory.length === 0) return;
+
+                let productHtml = '';
+                productsInCategory.forEach(p => {
+                    const img = p.imageUrl || `https://placehold.co/400x300/eee/999?text=${encodeURIComponent(p.name)}`;
+                    const promoText = p.promoType === 'EXCLUDED' ? 'ราคาคงที่' : 
+                                      p.promoType === 'BIG_BOTTLE' ? 'โปรขวดใหญ่' : 
+                                      p.promoType === 'SMALL_BOTTLE' ? 'โปรขวดเล็ก' : 'N/A';
+                    
+                    // (v4.3) Recommended (Star) button
+                    const recommendIcon = p.isRecommended ? 'star' : 'star-outline';
+                    const recommendColor = p.isRecommended ? 'text-yellow-500' : 'text-gray-400';
+                    const recommendButton = `
+                        <button onclick="window.toggleRecommended('${p.id}', ${p.isRecommended || false})" class="text-xl ${recommendColor} hover:text-yellow-500">
+                            <ion-icon name="${recommendIcon}"></ion-icon>
+                        </button>`;
+
+                    productHtml += `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border ml-4">
                             <div class="flex items-center gap-3">
                                 <img src="${img}" class="w-12 h-12 object-cover rounded border">
-                                <div><div class="font-bold text-sm">${p.name}</div><div class="text-xs text-gray-500">${p.basePrice} บ. | ${cat?.name||'-'} (${promoText})</div></div>
+                                <div><div class="font-bold text-sm">${p.name}</div><div class="text-xs text-gray-500">${p.basePrice} บ. (${promoText})</div></div>
                             </div>
-                            <div class="flex gap-1">
+                            <div class="flex gap-2 items-center">
+                                ${recommendButton}
                                 <button onclick="window.toggleStock('${p.id}',${p.isOutOfStock})" class="text-xs px-2 py-1 rounded text-white ${p.isOutOfStock?'bg-gray-500':'bg-green-500'}">${p.isOutOfStock?'ปิด':'เปิด'}</button>
                                 <button onclick="window.editProd('${p.id}')" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">แก้</button>
                                 <button onclick="window.delProd('${p.id}')" class="text-xs px-2 py-1 bg-red-600 text-white rounded">ลบ</button>
                             </div>
                         </div>`;
-                }
+                });
 
-                // Customer View (v3.0 filter)
-                const passesCategoryFilter = activeCategoryFilter === 'ALL' || p.categoryId === activeCategoryFilter;
+                adminList.innerHTML += `
+                    <div class="mb-4">
+                        <h4 class="font-bold text-lg text-emerald-700 mb-2 border-b border-emerald-200 pb-1">${cat.name}</h4>
+                        <div class="space-y-2">${productHtml}</div>
+                    </div>
+                `;
+            });
 
-                if(p.name.toLowerCase().includes(custSearch) && passesCategoryFilter) {
+            // (v4.4) New: Render uncategorized products
+            const uncategorizedProducts = localProducts
+                .filter(p => (!p.categoryId || !localCategories.some(c => c.id === p.categoryId)) && p.name.toLowerCase().includes(adminSearch))
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            if (uncategorizedProducts.length > 0) {
+                let productHtml = '';
+                uncategorizedProducts.forEach(p => {
+                    const img = p.imageUrl || `https://placehold.co/400x300/eee/999?text=${encodeURIComponent(p.name)}`;
+                    const promoText = p.promoType === 'EXCLUDED' ? 'ราคาคงที่' : 
+                                      p.promoType === 'BIG_BOTTLE' ? 'โปรขวดใหญ่' : 
+                                      p.promoType === 'SMALL_BOTTLE' ? 'โปรขวดเล็ก' : 'N/A';
+                    
+                    const recommendIcon = p.isRecommended ? 'star' : 'star-outline';
+                    const recommendColor = p.isRecommended ? 'text-yellow-500' : 'text-gray-400';
+                    const recommendButton = `
+                        <button onclick="window.toggleRecommended('${p.id}', ${p.isRecommended || false})" class="text-xl ${recommendColor} hover:text-yellow-500">
+                            <ion-icon name="${recommendIcon}"></ion-icon>
+                        </button>`;
+
+                    productHtml += `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border ml-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${img}" class="w-12 h-12 object-cover rounded border">
+                                <div><div class="font-bold text-sm">${p.name}</div><div class="text-xs text-gray-500">${p.basePrice} บ. (${promoText})</div></div>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                ${recommendButton}
+                                <button onclick="window.toggleStock('${p.id}',${p.isOutOfStock})" class="text-xs px-2 py-1 rounded text-white ${p.isOutOfStock?'bg-gray-500':'bg-green-500'}">${p.isOutOfStock?'ปิด':'เปิด'}</button>
+                                <button onclick="window.editProd('${p.id}')" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">แก้</button>
+                                <button onclick="window.delProd('${p.id}')" class="text-xs px-2 py-1 bg-red-600 text-white rounded">ลบ</button>
+                            </div>
+                        </div>`;
+                });
+
+                adminList.innerHTML += `
+                    <div class="mb-4">
+                        <h4 class="font-bold text-lg text-gray-500 mb-2 border-b border-gray-200 pb-1 italic">(สินค้าไม่มีหมวดหมู่)</h4>
+                        <div class="space-y-2">${productHtml}</div>
+                    </div>
+                `;
+            }
+            
+
+            // (v4.3) Customer View: Filter logic updated for "Recommended"
+            localProducts.forEach(p => {
+                const cat = localCategories.find(c => c.id === p.categoryId);
+                
+                let isSoldOut = p.isOutOfStock; 
+                if (cat && cat.isStockTracked && cat.remainingStock <= 0) { isSoldOut = true; }
+                if (cat && !cat.isStockTracked) { isSoldOut = false; }
+                
+                const img = p.imageUrl || `https://placehold.co/400x300/eee/999?text=${encodeURIComponent(p.name)}`;
+                
+                // (v4.3) Customer Filter Logic
+                const passesSearch = p.name.toLowerCase().includes(custSearch);
+                const passesCategoryFilter = activeCategoryFilter === 'ALL' || 
+                                             (activeCategoryFilter === 'RECOMMENDED' && p.isRecommended) || 
+                                             p.categoryId === activeCategoryFilter;
+
+                if(passesSearch && passesCategoryFilter) {
                     let promoDetail = '';
                     let promoColor = 'bg-red-600';
                     if(p.promoType === 'BIG_BOTTLE') { promoDetail = '2ชิ้น 150 | 4ชิ้น 240'; promoColor = 'bg-red-600'; }
                     else if(p.promoType === 'SMALL_BOTTLE') { promoDetail = '3ชิ้น 100 บาท!'; promoColor = 'bg-pink-600'; }
                     else if(p.promoType === 'EXCLUDED') { promoDetail = 'สินค้าราคาต่อชิ้น'; promoColor = 'bg-yellow-600'; }
 
+                    // (v4.3) Recommended Badge
+                    const recommendBadge = p.isRecommended 
+                        ? `<div class="absolute top-2 right-2 text-yellow-400 bg-black/50 p-1 rounded-full"><ion-icon name="star" class="text-sm block align-middle"></ion-icon></div>` 
+                        : '';
+
                     custList.innerHTML += `
                         <div class="bg-white rounded-xl shadow border overflow-hidden flex flex-col justify-between ${isSoldOut ? 'product-sold-out' : 'hover:shadow-md'}">
                             <div class="relative">
-                                <!-- (v3.8) MODIFIED: Changed to aspect-square -->
                                 <img src="${img}" class="w-full aspect-square object-cover" onerror="this.src='https://placehold.co/400x300/eee/999?text=Error'">
                                 ${isSoldOut ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold">หมด</div>' : ''}
-                                <div class="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-1 rounded ${promoColor}">${promoText}</div>
+                                <div class="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-1 rounded ${promoColor}">${p.promoType}</div>
+                                ${recommendBadge}
                             </div>
                             <div class="p-3 flex flex-col flex-grow">
                                 <h4 class="font-bold truncate">${p.name}</h4>
@@ -825,14 +1030,13 @@
             document.getElementById('cart-empty-msg').classList.toggle('hidden', cart.length > 0);
             document.getElementById('checkout-button').disabled = cart.length === 0;
             
-            // Floating Cart Badge Update (v3.0)
             const cartCountBadge = document.getElementById('cart-item-count');
             if(totalQty > 0) {
                 cartCountBadge.textContent = totalQty;
                 cartCountBadge.classList.remove('hidden');
             } else {
                 cartCountBadge.classList.add('hidden');
-                document.getElementById('cart-modal').classList.add('hidden'); // Close modal if cart empties
+                document.getElementById('cart-modal').classList.add('hidden');
             }
 
             document.getElementById('checkout-button').onclick = async (e) => {
@@ -852,7 +1056,6 @@
         window.openStock = (id, name) => { document.getElementById('update-stock-category-id').value = id; document.getElementById('update-stock-category-name').textContent = name; document.getElementById('update-stock-modal').classList.remove('hidden'); };
         document.getElementById('update-stock-cancel').onclick = () => document.getElementById('update-stock-modal').classList.add('hidden');
         
-        // (v3.2) Modified Stock Update Form
         document.getElementById('update-stock-form').onsubmit = async (e) => {
             e.preventDefault();
             const categoryId = document.getElementById('update-stock-category-id').value;
@@ -865,13 +1068,11 @@
             }
 
             try {
-                // Update category stock
                 await updateDoc(doc(db, `artifacts/${appId}/public/data/categories`, categoryId), {
                     totalStock: increment(adjustment),
                     remainingStock: increment(adjustment)
                 });
 
-                // (v3.2) Log *only positive* adjustments (additions)
                 if (adjustment > 0) {
                     await addDoc(collection(db, `artifacts/${appId}/public/data/stockHistory`), {
                         categoryId: categoryId,
@@ -891,7 +1092,21 @@
         };
 
         window.toggleStock = async (id, state) => await updateDoc(doc(db, `artifacts/${appId}/public/data/products`, id), { isOutOfStock: !state });
-        window.delProd = async (id) => confirm('ลบ?') && await deleteDoc(doc(db, `artifacts/${appId}/public/data/products`, id));
+        
+        // (v4.3) New: Toggle Recommended
+        window.toggleRecommended = async (id, state) => {
+             await updateDoc(doc(db, `artifacts/${appId}/public/data/products`, id), { isRecommended: !state });
+        }
+
+        window.delProd = (id) => {
+            window.showConfirmModal('ยืนยันการลบสินค้านี้?', async () => {
+                try {
+                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/products`, id));
+                    showModal('ลบสินค้าแล้ว');
+                } catch(err) { showModal('ลบไม่สำเร็จ: ' + err.message); }
+            });
+        };
+        
         window.editProd = (id) => {
             const p = localProducts.find(x => x.id === id);
             document.getElementById('product-id').value = p.id; 
@@ -902,6 +1117,13 @@
             currentImageBase64 = p.imageUrl || ""; 
             if(currentImageBase64) { document.getElementById('image-preview').src = currentImageBase64; document.getElementById('image-preview-container').classList.remove('hidden'); }
             document.getElementById('cancel-edit-btn').classList.remove('hidden'); document.getElementById('submit-product-btn-text').textContent = "บันทึก";
+            
+            // (v4.3) Scroll to and open the "Add/Edit" details section
+            const addProductDetails = document.getElementById('add-product-form').closest('details');
+            if (addProductDetails) {
+                addProductDetails.open = true;
+                addProductDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         };
         document.getElementById('cancel-edit-btn').onclick = () => { 
             document.getElementById('add-product-form').reset(); 
@@ -913,12 +1135,10 @@
             document.getElementById('submit-product-btn-text').textContent="เพิ่มสินค้าใหม่"; 
         };
 
-        // (v3.9) Modified addCart
         window.addCart = (id) => { 
             const product = localProducts.find(p => p.id === id);
             const category = localCategories.find(c => c.id === product.categoryId);
             
-            // (v3.9) Modified check: Only check stock if category is tracked
             let isSoldOut = product.isOutOfStock;
             if (category && category.isStockTracked && category.remainingStock <= 0) {
                 isSoldOut = true;
@@ -942,7 +1162,6 @@
             renderCart();
         };
 
-        // (v3.9) Modified Order Actions (pay function)
         window.pay = async (id) => {
             const o = localOrders.find(x => x.id === id);
             if(!o) return;
@@ -950,17 +1169,15 @@
                 await runTransaction(db, async (t) => {
                     t.update(doc(db, `artifacts/${appId}/public/data/orders`, id), { status: 'paid' });
                     
-                    // Create map of {categoryId: quantity}
                     const map = new Map();
                     o.items.forEach(i => { 
                         const p = localProducts.find(x=>x.id===i.id); 
                         if(p && p.categoryId) map.set(p.categoryId, (map.get(p.categoryId)||0)+i.quantity); 
                     });
                     
-                    // (v3.9) Loop map and deduct stock ONLY if category is tracked
                     map.forEach((qty, catId) => {
                         const category = localCategories.find(c => c.id === catId);
-                        if (category && category.isStockTracked) { // Only deduct if tracked
+                        if (category && category.isStockTracked) { 
                             t.update(doc(db, `artifacts/${appId}/public/data/categories`, catId), { remainingStock: increment(-qty) });
                         }
                     });
@@ -971,20 +1188,24 @@
         window.delOrder = async (id) => await updateDoc(doc(db, `artifacts/${appId}/public/data/orders`, id), { status: 'deleted' }); 
 
         // Forms
-        // (v3.9) Modified add-category-form
+        // (v4.3) MODIFIED: Add 'order' field on creation
         document.getElementById('add-category-form').onsubmit = async (e) => {
             e.preventDefault();
             const categoryName = document.getElementById('category-name').value;
-            const isTracked = document.getElementById('category-track-stock').checked; // (v3.9) New
+            const isTracked = document.getElementById('category-track-stock').checked;
+            
+            // (v4.3) Add new categories to the end of the list
+            const newOrder = localCategories.length;
             
             await addDoc(collection(db, `artifacts/${appId}/public/data/categories`), { 
                 name: categoryName, 
                 totalStock: 0, 
                 remainingStock: 0,
-                isStockTracked: isTracked // (v3.9) New
+                isStockTracked: isTracked,
+                order: newOrder // (v4.3) New field
             }); 
             e.target.reset();
-            document.getElementById('category-track-stock').checked = true; // (v3.9) Reset checkbox
+            document.getElementById('category-track-stock').checked = true; 
         };
         document.getElementById('add-product-form').onsubmit = async (e) => {
             e.preventDefault();
@@ -998,11 +1219,15 @@
             if(currentImageBase64) data.imageUrl = currentImageBase64;
             const id = document.getElementById('product-id').value;
             if(id) await updateDoc(doc(db, `artifacts/${appId}/public/data/products`, id), data);
-            else { data.isOutOfStock = false; data.createdAt = serverTimestamp(); await addDoc(collection(db, `artifacts/${appId}/public/data/products`), data); }
+            else { 
+                data.isOutOfStock = false; 
+                data.createdAt = serverTimestamp(); 
+                data.isRecommended = false; // (v4.3) Default recommended to false
+                await addDoc(collection(db, `artifacts/${appId}/public/data/products`), data); 
+            }
             document.getElementById('cancel-edit-btn').click();
         };
 
-        // (v4.0) New: Edit Category Logic
         window.editCategory = (id) => {
             const cat = localCategories.find(c => c.id === id);
             if (!cat) return;
@@ -1034,6 +1259,7 @@
                 showModal("เกิดข้อผิดพลาด: " + err.message);
             }
         };
+
         window.deleteCategory = async (id) => {
             const productsInCat = localProducts.filter(p => p.categoryId === id);
             if (productsInCat.length > 0) {
@@ -1041,24 +1267,24 @@
                 return;
             }
             
-            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้? (ไม่สามารถย้อนกลับได้)')) {
+            window.showConfirmModal('คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้? (ไม่สามารถย้อนกลับได้)', async () => {
                 try {
                     await deleteDoc(doc(db, `artifacts/${appId}/public/data/categories`, id));
                     showModal("ลบหมวดหมู่แล้ว");
+                    // (v4.3) TODO: Re-order other categories? For now, snapshot will just refetch.
                 } catch (err) {
                     console.error("Error deleting category: ", err);
                     showModal("เกิดข้อผิดพลาด: " + err.message);
                 }
-            }
+            });
         };
         
-        // (v3.9) Modified: Eating Log Form
         addEatingLogForm.onsubmit = async (e) => {
             e.preventDefault();
             const categoryId = document.getElementById('eat-category-select').value;
             const quantity = parseInt(document.getElementById('eat-quantity').value);
             const person = document.getElementById('eat-person').value;
-            const logId = eatLogIdInput.value; // (v3.9) Get ID for editing
+            const logId = eatLogIdInput.value;
 
             if (!categoryId || isNaN(quantity) || quantity <= 0 || !person) {
                 showModal("ข้อมูลไม่ครบถ้วน (ต้องเลือกหมวดหมู่, จำนวน, และชื่อคนกิน)");
@@ -1071,7 +1297,6 @@
                 return;
             }
 
-            // (v3.9) Only check stock if the category is tracked
             if (category.isStockTracked && category.remainingStock < quantity) {
                 showModal(`สต็อกไม่พอ! (${category.name} เหลือ ${category.remainingStock})`);
                 return;
@@ -1082,25 +1307,19 @@
                 categoryName: category.name,
                 quantity: quantity,
                 personName: person,
-                // No product info
             };
 
             try {
                 if (logId) {
-                    // This is an UPDATE
-                    // Note: We DO NOT adjust stock on edit, only on creation. Admin must fix stock manually.
                     await updateDoc(doc(db, `artifacts/${appId}/public/data/eatingHistory`, logId), logData);
                     showModal("แก้ไขบันทึกการกินสำเร็จ!");
 
                 } else {
-                    // This is a NEW entry
                     logData.createdAt = serverTimestamp();
                     const batch = writeBatch(db);
                     
-                    // 1. Log the eating event
                     batch.set(doc(collection(db, `artifacts/${appId}/public/data/eatingHistory`)), logData);
                     
-                    // 2. Deduct stock ONLY if tracked
                     if (category.isStockTracked) {
                         const stockRef = doc(db, `artifacts/${appId}/public/data/categories`, category.id);
                         batch.update(stockRef, { remainingStock: increment(-quantity) });
@@ -1110,7 +1329,7 @@
                     showModal(`บันทึกการกิน (${category.name} ${quantity} ชิ้น) และตัดสต็อกสำเร็จ!`);
                 }
                 
-                cancelEatLogBtn.click(); // Reset form
+                cancelEatLogBtn.click(); 
 
             } catch (err) {
                 console.error("Error logging eating event: ", err);
@@ -1118,7 +1337,6 @@
             }
         };
 
-        // (v3.9) New: Edit/Delete/Cancel Eating Log
         window.editEatLog = (id) => {
             const log = localEatingHistory.find(x => x.id === id);
             eatLogIdInput.value = log.id;
@@ -1130,15 +1348,14 @@
         };
 
         window.delEatLog = async (id) => {
-            // Note: Does not refund stock.
-            if (confirm('ลบ? (การลบนี้จะไม่คืนสต็อกที่ตัดไปแล้ว)')) {
+            window.showConfirmModal('ลบ? (การลบนี้จะไม่คืนสต็อกที่ตัดไปแล้ว)', async () => {
                 try {
                     await deleteDoc(doc(db, `artifacts/${appId}/public/data/eatingHistory`, id));
                     showModal("ลบประวัติการกินแล้ว");
                 } catch (err) {
                     showModal("เกิดข้อผิดพลาด: " + err.message);
                 }
-            }
+            });
         };
 
         cancelEatLogBtn.onclick = () => {
@@ -1146,11 +1363,10 @@
             eatLogIdInput.value = '';
             cancelEatLogBtn.classList.add('hidden');
             submitEatLogBtnText.textContent = "บันทึก";
-            document.getElementById('eat-quantity').value = 1; // Reset default
+            document.getElementById('eat-quantity').value = 1; 
         };
 
 
-        // (v4.0) Modified: Render Eating Log History (Bigger Font)
         function renderEatingLogHistory() {
             eatingLogHistoryList.innerHTML = '';
             if (localEatingHistory.length === 0) {
@@ -1158,7 +1374,6 @@
                 return;
             }
             localEatingHistory.forEach(log => {
-                // (v4.0) Changed text-xs to text-sm and p-1 to p-2
                 eatingLogHistoryList.innerHTML += `
                     <div class="flex justify-between items-center text-sm p-2 border-b">
                         <span><strong class="text-gray-800">${log.personName}</strong> กิน ${log.categoryName} (<span class="text-red-600 font-bold">-${log.quantity}</span>)</span>
@@ -1181,7 +1396,16 @@
             document.getElementById('cancel-expense-btn').click(); 
         };
         window.editExp = (id) => { const e = localExpenses.find(x=>x.id===id); document.getElementById('expense-id').value=e.id; document.getElementById('expense-description').value=e.description; document.getElementById('expense-amount').value=e.amount; document.getElementById('cancel-expense-btn').classList.remove('hidden'); document.getElementById('submit-expense-btn-text').textContent="แก้"; };
-        window.delExp = (id) => confirm('ลบ?') && deleteDoc(doc(db, `artifacts/${appId}/public/data/expenses`, id));
+        
+        window.delExp = (id) => {
+            window.showConfirmModal('ยืนยันการลบรายจ่ายนี้?', async () => {
+                try {
+                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/expenses`, id));
+                    showModal('ลบรายจ่ายแล้ว');
+                } catch(err) { showModal('ลบไม่สำเร็จ: ' + err.message); }
+            });
+        };
+        
         document.getElementById('cancel-expense-btn').onclick = () => { 
             document.getElementById('add-expense-form').reset(); 
             document.getElementById('expense-id').value=''; 
@@ -1189,7 +1413,6 @@
             document.getElementById('submit-expense-btn-text').textContent="บันทึก"; 
         };
         
-        // (v3.2) New: Render Stock History
         function renderStockHistory() {
             stockHistoryList.innerHTML = '';
             if (localStockHistory.length === 0) {
@@ -1206,7 +1429,6 @@
             });
         }
         
-        // (v3.1) *** FIX: This is the one and only renderStats function ***
         function renderStats() {
             const pendSales = localOrders.filter(o => o.status === 'paid' && o.reportStatus === 'pending').reduce((sum, o) => sum + o.totalPrice, 0);
             const pendExp = localExpenses.filter(e => e.reportStatus === 'pending').reduce((sum, e) => sum + e.amount, 0);
@@ -1221,19 +1443,17 @@
             
             const expList = document.getElementById('expense-history-list'); expList.innerHTML = '';
             localExpenses.sort((a,b)=> (b.createdAt?.toDate()||0)-(a.createdAt?.toDate()||0)).forEach(e => {
-                // (v3.7) Only show pending expenses here
                 if(e.reportStatus === 'pending') {
                     expList.innerHTML += `<div class="flex justify-between text-xs p-1 border-b"><span>${e.description}</span> <div class="flex gap-2"><span class="text-red-600">${e.amount}</span> <button onclick="window.editExp('${e.id}')" class="text-blue-500">✎</button> <button onclick="window.delExp('${e.id}')" class="text-red-500">x</button></div></div>`;
                 }
             });
         }
 
-        // (v3.7) Modified Z-Report Button
         document.getElementById('z-report-button').onclick = () => {
             const orders = localOrders.filter(o => o.status === 'paid' && o.reportStatus === 'pending');
             const exps = localExpenses.filter(e => e.reportStatus === 'pending');
-            const stockLogs = localStockHistory; // (v3.7) Get all pending stock logs
-            const eatLogs = localEatingHistory; // (v3.7) Get all pending eating logs
+            const stockLogs = localStockHistory; 
+            const eatLogs = localEatingHistory; 
             
             if(!orders.length && !exps.length && !stockLogs.length && !eatLogs.length) { 
                 showModal('ไม่มียอด (ขาย, จ่าย, เติม, กิน) ที่จะสรุป'); 
@@ -1247,7 +1467,6 @@
             document.getElementById('z-report-sales-details').innerHTML = Object.entries(sMap).map(([k,v]) => `<div>${k} x${v}</div>`).join('') || '-';
             document.getElementById('z-report-expense-details').innerHTML = exps.map(e => `<div>${e.description}: ${e.amount}</div>`).join('') || '-';
             
-            // (v3.9) Modified: Stock details now respect isStockTracked
             document.getElementById('z-report-stock-details').innerHTML = localCategories.map(c => {
                 const stockDisplay = c.isStockTracked ? `${c.remainingStock} / ${c.totalStock}` : "(ไม่นับสต็อก)";
                 return `<div>${c.name}: ${stockDisplay}</div>`;
@@ -1259,11 +1478,8 @@
                     return `<div>${time}: ${log.categoryName} (<span class="text-green-700 font-bold">+${log.amountAdded}</span>)</div>`;
                 }).join('') || '-';
             
-            // (v3.7) New: Render eating history in Z-Report modal
             document.getElementById('z-report-eating-log-details').innerHTML = 
                 eatLogs.map(log => {
-                    // (v3.9) Modified: Simplified display
-                    // const time = log.createdAt?.toDate ? log.createdAt.toDate().toLocaleTimeString('th-TH') : '...';
                     return `<div>${log.personName} กิน ${log.categoryName} (<span class="text-red-600 font-bold">-${log.quantity}</span>)</div>`;
                 }).join('') || '-';
 
@@ -1275,7 +1491,6 @@
         };
         document.getElementById('z-report-cancel-button').onclick = () => document.getElementById('z-report-modal').classList.add('hidden');
         
-        // (v3.9) Modified Z-Report Confirm
         document.getElementById('z-report-confirm-button').onclick = async () => {
              const orders = localOrders.filter(o => o.status === 'paid' && o.reportStatus === 'pending');
              const exps = localExpenses.filter(e => e.reportStatus === 'pending');
@@ -1283,48 +1498,39 @@
              const eatLogs = localEatingHistory;
              const batch = writeBatch(db);
              
-             // 1. (v3.7) DELETE processed orders
              orders.forEach(o => batch.delete(doc(db, `artifacts/${appId}/public/data/orders`, o.id)));
-             
-             // 2. Mark expenses as 'cleared'
              exps.forEach(e => batch.update(doc(db, `artifacts/${appId}/public/data/expenses`, e.id), {reportStatus:'cleared'}));
              
-             // 3. Reset Total Stock to match Remaining Stock (ONLY if tracked)
              for (const cat of localCategories) {
-                 if (cat.isStockTracked) { // (v3.9) Only reset if tracked
+                 if (cat.isStockTracked) { 
                      batch.update(doc(db, `artifacts/${appId}/public/data/categories`, cat.id), {
                          totalStock: cat.remainingStock 
                      });
                  }
              }
              
-             // 4. Clear Stock History
              stockLogs.forEach(docSnap => {
                 batch.delete(doc(db, `artifacts/${appId}/public/data/stockHistory`, docSnap.id));
              });
 
-             // (v3.7) 5. Clear Eating History
              eatLogs.forEach(docSnap => {
                 batch.delete(doc(db, `artifacts/${appId}/public/data/eatingHistory`, docSnap.id));
              });
 
-             // 6. Capture snapshot data for history
              const salesSummary = orders.flatMap(o => o.items).reduce((acc, item) => {
                 acc[item.name] = (acc[item.name] || 0) + item.quantity; return acc;
              }, {});
              const expenseSummary = exps.map(e => ({description:e.description, amount:e.amount}));
-             // (v3.9) Modified Snapshot
              const stockSnapshot = localCategories.map(c => ({
                  name: c.name, 
                  remainingStock: c.remainingStock, 
                  totalStock: c.totalStock,
-                 isStockTracked: c.isStockTracked // (v3.9) New
+                 isStockTracked: c.isStockTracked 
              }));
              const stockRefillSnapshot = stockLogs.map(log => ({
                  categoryName: log.categoryName,
                  amountAdded: log.amountAdded
              }));
-             // (v3.9) Modified Snapshot
              const eatingLogSnapshot = eatLogs.map(log => ({
                  personName: log.personName,
                  categoryName: log.categoryName,
@@ -1347,13 +1553,11 @@
                  eatingLogSnapshot: eatingLogSnapshot
              });
              
-             // 7. Commit all changes
              await batch.commit(); 
              document.getElementById('z-report-modal').classList.add('hidden'); 
              showModal('ตัดยอดสำเร็จ! (ลบออเดอร์เก่า, รีเซ็ตสต็อก, ล้างประวัติ เติม/กิน)');
         };
 
-        // (v3.9) Modified showHist
         window.showHist = (id) => {
             const h = localReportHistory.find(x => x.id === id);
             
@@ -1361,12 +1565,10 @@
                 ? `<div class="font-bold text-yellow-700 mt-2">ประวัติเติมสต็อก (ที่ถูกล้าง)</div><div class="ml-2 text-sm">${h.stockRefillSnapshot.map(s=>`<div>${s.categoryName}: +${s.amountAdded}</div>`).join('')}</div>`
                 : '';
             
-            // (v3.9) Modified
             const eatingLogsHtml = h.eatingLogSnapshot && h.eatingLogSnapshot.length > 0
                 ? `<div class="font-bold text-orange-700 mt-2">ประวัติการกิน (ที่ถูกล้าง)</div><div class="ml-2 text-sm">${h.eatingLogSnapshot.map(s=>`<div>${s.personName} กิน ${s.categoryName} (-${s.quantity})</div>`).join('')}</div>`
                 : '';
             
-            // (v3.9) Modified
             const stockSnapshotHtml = h.stockSnapshot && h.stockSnapshot.length > 0
                 ? `<div class="font-bold text-blue-700 mt-2">สต็อก (ณ เวลาตัดยอด)</div><div class="ml-2 text-sm">${h.stockSnapshot.map(s => {
                     const stockDisp = s.isStockTracked ? `${s.remainingStock}/${s.totalStock}` : "(ไม่นับสต็อก)";
@@ -1393,7 +1595,6 @@
         document.getElementById('admin-search-bar').oninput = renderProducts;
         document.getElementById('customer-search-bar').oninput = renderProducts;
 
-        // (v3.1) Navigation Logic
         showStoreBtn.onclick = () => { 
             storeSection.classList.remove('hidden'); 
             adminSection.classList.add('hidden'); 
@@ -1411,11 +1612,9 @@
             showStoreBtn.classList.remove('bg-white', 'text-emerald-700');
         };
         
-        // (v3.1) Admin Login Modal Triggers
         document.getElementById('admin-login-btn').onclick = () => document.getElementById('admin-login-modal').classList.remove('hidden');
         document.getElementById('admin-login-modal-close').onclick = () => document.getElementById('admin-login-modal').classList.add('hidden');
 
-        // (v3.1) Admin Login/Logout Logic
         document.getElementById('admin-login-form').onsubmit = async (e) => {
             e.preventDefault();
             const email = document.getElementById('admin-email').value;
@@ -1424,7 +1623,6 @@
                 await signInWithEmailAndPassword(auth, email, pass);
                 document.getElementById('admin-login-modal').classList.add('hidden');
                 showModal('ล็อกอินแอดมินสำเร็จ!');
-                // onAuthStateChanged will handle the UI switch
             } catch (err) {
                 showModal('ล็อกอินผิดพลาด: ' + err.message);
             }
@@ -1433,13 +1631,11 @@
         document.getElementById('admin-logout-btn').onclick = async () => {
             try {
                 await signOut(auth);
-                // onAuthStateChanged will sign user back in anonymously
             } catch (err) {
                 showModal('ล็อกเอาต์ผิดพลาด: ' + err.message);
             }
         };
         
-        // (v3.3) New Clear History Logic
         document.getElementById('show-clear-history-modal').onclick = () => {
             confirmClearModal.classList.remove('hidden');
         };
@@ -1451,29 +1647,24 @@
             confirmClearModal.classList.add('hidden');
         };
         
-        // (v3.7) Modified clearAllHistory
         async function clearAllHistory() {
             showModal("กำลังล้างประวัติทั้งหมด...");
             try {
                 const batch = writeBatch(db);
                 
-                // 1. Clear Z-Report History
                 localReportHistory.forEach(docSnap => {
                     batch.delete(doc(db, `artifacts/${appId}/public/data/zReportHistory`, docSnap.id));
                 });
                 
-                // 2. Clear Stock History
                 localStockHistory.forEach(docSnap => {
                     batch.delete(doc(db, `artifacts/${appId}/public/data/stockHistory`, docSnap.id));
                 });
                 
-                // 3. Clear *only cleared* Expense History
                 const clearedExpenses = localExpenses.filter(e => e.reportStatus === 'cleared');
                 clearedExpenses.forEach(docSnap => {
                     batch.delete(doc(db, `artifacts/${appId}/public/data/expenses`, docSnap.id));
                 });
                 
-                // (v3.7) 4. Clear Eating History
                 localEatingHistory.forEach(docSnap => {
                     batch.delete(doc(db, `artifacts/${appId}/public/data/eatingHistory`, docSnap.id));
                 });
@@ -1487,43 +1678,36 @@
         }
 
 
-        // (v3.9.1) *** FIX: Restored Auth Listener Body ***
         function setupAuthListener() {
-            setLogLevel('debug'); // Turn on Firebase logging
+            setLogLevel('debug'); 
             db = getFirestore(app); 
             auth = getAuth(app);
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    // User is signed in
                     userId = user.uid;
                     document.getElementById('app-id-display').textContent = appId; 
                     document.getElementById('user-id-display').textContent = userId;
 
                     if (user.isAnonymous) {
-                        // --- Logged in as CUSTOMER (Anonymous) ---
                         document.getElementById('auth-status').textContent = 'Customer (Anonymous)';
-                        document.getElementById('show-admin-btn').classList.add('hidden'); // Hide Admin button
-                        document.getElementById('admin-login-btn').classList.remove('hidden'); // Show Login button
-                        document.getElementById('admin-logout-btn').classList.add('hidden'); // Hide Logout button
-                        showStoreBtn.click(); // Default to store view
+                        document.getElementById('show-admin-btn').classList.add('hidden'); 
+                        document.getElementById('admin-login-btn').classList.remove('hidden'); 
+                        document.getElementById('admin-logout-btn').classList.add('hidden'); 
+                        showStoreBtn.click(); 
                     } else {
-                        // --- Logged in as ADMIN (Email/Password) ---
                         document.getElementById('auth-status').textContent = 'ADMIN';
-                        document.getElementById('show-admin-btn').classList.remove('hidden'); // SHOW Admin button
-                        document.getElementById('admin-login-btn').classList.add('hidden'); // Hide Login button
-                        document.getElementById('admin-logout-btn').classList.remove('hidden'); // SHOW Logout button
+                        document.getElementById('show-admin-btn').classList.remove('hidden'); 
+                        document.getElementById('admin-login-btn').classList.add('hidden'); 
+                        document.getElementById('admin-logout-btn').classList.remove('hidden'); 
                     }
 
-                    // (v3.1) Only setup data listeners *after* auth is confirmed
                     if (!listenersInitialized) {
                         setupDataListeners();
                         listenersInitialized = true;
                     }
                     
                 } else {
-                    // User is signed out (or page just loaded)
-                    // Sign them in anonymously to be a customer
                     document.getElementById('auth-status').textContent = 'Signing in...';
                     signInAnonymously(auth).catch(err => {
                         console.error("Anonymous sign-in failed: ", err);
@@ -1533,9 +1717,7 @@
             });
         }
         
-        // (v3.9.1) *** FIX: Restored Data Listeners Body ***
         function setupDataListeners() {
-            // (v3.7) Added eatingHistory path
             const paths = [
                 `artifacts/${appId}/public/data/categories`, 
                 `artifacts/${appId}/public/data/products`, 
@@ -1543,10 +1725,13 @@
                 `artifacts/${appId}/public/data/expenses`, 
                 `artifacts/${appId}/public/data/zReportHistory`,
                 `artifacts/${appId}/public/data/stockHistory`,
-                `artifacts/${appId}/public/data/eatingHistory` // (v3.7) New
+                `artifacts/${appId}/public/data/eatingHistory`
             ];
             
+            // (v4.5) FIX: Removed orderBy("order") from query to fetch all categories (even old ones without 'order' field).
+            // Sorting is now handled reliably in renderCategories().
             onSnapshot(query(collection(db, paths[0])), s => { localCategories = s.docs.map(d=>({id:d.id,...d.data()})); renderCategories(); renderProducts(); });
+            
             onSnapshot(query(collection(db, paths[1])), s => { localProducts = s.docs.map(d=>({id:d.id,...d.data()})); renderProducts(); renderCart(); });
             onSnapshot(query(collection(db, paths[2]), orderBy("createdAt", "desc")), s => { localOrders = s.docs.map(d=>({id:d.id,...d.data()})); renderOrders(); renderStats(); });
             onSnapshot(query(collection(db, paths[3])), s => { localExpenses = s.docs.map(d=>({id:d.id,...d.data()})); renderStats(); });
@@ -1555,17 +1740,14 @@
                 localStockHistory = s.docs.map(d=>({id:d.id,...d.data()})); 
                 renderStockHistory(); 
             });
-            // (v3.7) New listener for eating history
             onSnapshot(query(collection(db, paths[6]), orderBy("createdAt", "desc")), s => { 
                 localEatingHistory = s.docs.map(d=>({id:d.id,...d.data()})); 
                 renderEatingLogHistory(); 
             });
         }
 
-        // (v3.1) Start the auth process
         setupAuthListener();
 
     </script>
 </body>
 </html>
-
